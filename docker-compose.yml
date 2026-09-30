@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cyclopath_backend
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - DEMO_MODE=${DEMO_MODE:-true}
+      - ENABLE_DEMO_AUTH=${ENABLE_DEMO_AUTH:-false}
+      - JWT_SECRET=${JWT_SECRET:-}
+      - AUTH_DEMO_ADMIN_PASSWORD=${AUTH_DEMO_ADMIN_PASSWORD:-}
+      - AUTH_DEMO_MUNICIPAL_PASSWORD=${AUTH_DEMO_MUNICIPAL_PASSWORD:-}
+      - AUTH_DEMO_RESPONDER_PASSWORD=${AUTH_DEMO_RESPONDER_PASSWORD:-}
+      - AUTH_DEMO_CITIZEN_PASSWORD=${AUTH_DEMO_CITIZEN_PASSWORD:-}
+      - PORT=8000
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: cyclopath_frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
