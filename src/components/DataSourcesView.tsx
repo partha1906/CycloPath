@@ -18,13 +18,14 @@ export const DataSourcesView: React.FC = () => {
     setLoading(true);
     try {
       const [srcs, h] = await Promise.all([
-        api.getDataSources(),
-        api.getSystemHealth()
+        api.getDataSources().catch(() => []),
+        api.getSystemHealth().catch(() => null)
       ]);
-      setSources(srcs);
+      setSources(Array.isArray(srcs) ? srcs : []);
       setHealth(h);
     } catch (err) {
       console.error('Data sources error:', err);
+      setSources([]);
     } finally {
       setLoading(false);
     }
@@ -112,7 +113,7 @@ export const DataSourcesView: React.FC = () => {
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {sources.map((src) => (
+          {(sources || []).map((src) => (
             <div
               key={src.id}
               className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs hover:border-slate-300 transition space-y-3 flex flex-col justify-between"

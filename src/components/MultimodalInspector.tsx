@@ -1,21 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   Camera, 
+  Upload, 
   Sparkles, 
   ShieldAlert, 
   CheckCircle2, 
   AlertTriangle, 
   FileText, 
-  Clock
+  Clock,
+  X,
+  Image as ImageIcon
 } from 'lucide-react';
 import { MultimodalAnalysis } from '../types';
 import { api } from '../services/api';
 
 export const MultimodalInspector: React.FC = () => {
-  const [selectedPreset, setSelectedPreset] = useState<'substation' | 'hospital' | 'bridge'>('substation');
+  const [selectedPreset, setSelectedPreset] = useState<'substation' | 'hospital' | 'bridge' | 'custom'>('substation');
   const [contextNotes, setContextNotes] = useState('Coastal facility facing severe cyclone surge inundation');
+  const [customImageBase64, setCustomImageBase64] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState<MultimodalAnalysis | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const presets = {
     substation: {
@@ -35,12 +40,35 @@ export const MultimodalInspector: React.FC = () => {
     }
   };
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file (PNG, JPG, WEBP).');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+      setCustomImageBase64(result);
+      setSelectedPreset('custom');
+      setContextNotes(`Field inspection photo: ${file.name}`);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleAnalyze = async () => {
     setLoading(true);
     try {
-      const p = presets[selectedPreset];
+      const isCustom = selectedPreset === 'custom';
+      const p = isCustom ? null : presets[selectedPreset];
+      const assetId = isCustom ? 'CUSTOM-INSPECTION-01' : p!.id;
+      
       const res = await api.analyzeMultimodalImage({
-        asset_id: p.id,
+        image_base64: customImageBase64 || undefined,
+        asset_id: assetId,
         context_notes: contextNotes
       });
       setAnalysis(res);
@@ -54,18 +82,35 @@ export const MultimodalInspector: React.FC = () => {
   return (
     <div className="w-full flex-1 overflow-y-auto px-4 sm:px-8 py-8 space-y-8 bg-slate-50">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
-          <Camera className="w-7 h-7 text-slate-800" />
-          <span>Multimodal AI Infrastructure Vision Screening</span>
-        </h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Powered by Google Gemini Multimodal Vision for rapid damage indicators, visible water depth, and structural triage
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
+            <Camera className="w-7 h-7 text-slate-800" />
+            <span>Multimodal AI Infrastructure Vision Screening</span>
+          </h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Powered by Google Gemini Multimodal Vision for rapid damage indicators, visible water depth, and structural triage
+          </p>
+        </div>
+
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="px-4 py-2 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-slate-800 font-semibold text-xs flex items-center gap-2 shadow-xs transition self-start sm:self-auto cursor-pointer"
+        >
+          <Upload className="w-4 h-4 text-slate-600" />
+          <span>Upload Field Photo</span>
+        </button>
+        <input 
+          type="file" 
+          ref={fileInputRef} 
+          onChange={handleFileUpload} 
+          accept="image/*" 
+          className="hidden" 
+        />
       </div>
 
       {/* Preset Selection & Inspection Targets */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {(Object.keys(presets) as Array<keyof typeof presets>).map((key) => {
           const item = presets[key];
           const isSelected = selectedPreset === key;
@@ -73,34 +118,92 @@ export const MultimodalInspector: React.FC = () => {
           return (
             <div
               key={key}
-              onClick={() => setSelectedPreset(key)}
+              onClick={() => {
+                setSelectedPreset(key);
+                setCustomImageBase64(null);
+              }}
               className={`bg-white p-5 rounded-xl cursor-pointer transition relative space-y-3 border ${
                 isSelected
                   ? 'border-slate-900 ring-2 ring-slate-900/10 shadow-sm'
                   : 'border-slate-200 hover:border-slate-300'
               }`}
             >
-              <div className="h-32 rounded-lg bg-slate-100 border border-slate-200 flex flex-col items-center justify-center p-3 relative overflow-hidden">
-                <Camera className="w-8 h-8 text-slate-500 mx-auto" />
+              <div className="h-28 rounded-lg bg-slate-100 border border-slate-200 flex flex-col items-center justify-center p-3 relative overflow-hidden">
+                <Camera className="w-7 h-7 text-slate-500 mx-auto" />
                 <span className="text-xs font-mono text-slate-800 font-bold block mt-1">{item.id}</span>
               </div>
 
               <div>
-                <div className="font-bold text-slate-900 text-sm">{item.title}</div>
-                <p className="text-xs text-slate-500 mt-1">{item.desc}</p>
+                <div className="font-bold text-slate-900 text-xs sm:text-sm leading-snug">{item.title}</div>
+                <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">{item.desc}</p>
               </div>
             </div>
           );
         })}
+
+        {/* Custom Upload Card */}
+        <div
+          onClick={() => {
+            if (!customImageBase64) {
+              fileInputRef.current?.click();
+            } else {
+              setSelectedPreset('custom');
+            }
+          }}
+          className={`bg-white p-5 rounded-xl cursor-pointer transition relative space-y-3 border ${
+            selectedPreset === 'custom'
+              ? 'border-slate-900 ring-2 ring-slate-900/10 shadow-sm'
+              : 'border-slate-200 hover:border-slate-300'
+          }`}
+        >
+          <div className="h-28 rounded-lg bg-slate-100 border border-slate-200 border-dashed flex flex-col items-center justify-center p-3 relative overflow-hidden">
+            {customImageBase64 ? (
+              <img 
+                src={customImageBase64} 
+                alt="Uploaded field photo" 
+                className="w-full h-full object-cover rounded" 
+              />
+            ) : (
+              <div className="text-center text-slate-500">
+                <Upload className="w-7 h-7 mx-auto mb-1 text-slate-400" />
+                <span className="text-xs font-semibold block">Click to Upload</span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="font-bold text-slate-900 text-xs sm:text-sm leading-snug">
+                {customImageBase64 ? 'Custom Field Photo' : 'Upload Your Photo'}
+              </div>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                {customImageBase64 ? 'Image ready for Gemini vision triage' : 'Select JPEG, PNG from mobile or disk'}
+              </p>
+            </div>
+            {customImageBase64 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCustomImageBase64(null);
+                  setSelectedPreset('substation');
+                }}
+                className="p-1 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded"
+                title="Remove photo"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Action Trigger Card */}
       <div className="bg-white border border-slate-200 rounded-xl p-6 sm:p-8 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="w-full sm:w-2/3">
-          <label className="text-xs font-semibold text-slate-700 block mb-1.5">Contextual Field Notes</label>
+          <label className="text-xs font-semibold text-slate-700 block mb-1.5">Contextual Field Observations</label>
           <input
             type="text"
-            placeholder="Add contextual observations (e.g. water rising, wind gusts 150 km/h)..."
+            placeholder="Add contextual observations (e.g. seawater overtopping plinth, roof shingles displaced, power outage)..."
             value={contextNotes}
             onChange={(e) => setContextNotes(e.target.value)}
             className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 placeholder-slate-400 outline-none font-medium"
@@ -163,7 +266,7 @@ export const MultimodalInspector: React.FC = () => {
           <div className="space-y-2.5">
             <span className="text-xs font-bold text-slate-900 block">Specific Identified Damage Indicators:</span>
             <div className="space-y-2 text-xs text-slate-800">
-              {analysis.damage_indicators.map((ind, i) => (
+              {(analysis.damage_indicators || []).map((ind, i) => (
                 <div key={i} className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-900 flex items-start gap-2.5">
                   <span className="font-bold text-rose-700 font-mono">{i + 1}.</span>
                   <span>{ind}</span>

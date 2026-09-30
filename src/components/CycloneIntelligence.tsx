@@ -79,7 +79,7 @@ export const CycloneIntelligence: React.FC<CycloneIntelProps> = ({
 
         {/* Timeline Buttons */}
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5">
-          {points.map((pt, idx) => {
+          {(points || []).map((pt, idx) => {
             const isSelected = idx === selectedPointIndex;
             const isLandfall = pt.time.includes('Landfall');
             const isCurrent = pt.time.includes('Current');

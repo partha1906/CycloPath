@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Route as RouteIcon, 
   Navigation, 
@@ -8,13 +8,25 @@ import {
   MapPin, 
   Truck, 
   ArrowRight,
-  TrendingDown
+  TrendingDown,
+  Building2
 } from 'lucide-react';
-import { RouteResponse } from '../types';
+import { RouteResponse, InfrastructureAsset } from '../types';
 import { api } from '../services/api';
 
-export const EmergencyRouting: React.FC = () => {
-  const [startPoint, setStartPoint] = useState<'puri_hosp' | 'paradip_hosp' | 'konark'>('puri_hosp');
+interface EmergencyRoutingProps {
+  assets?: InfrastructureAsset[];
+  initialOriginAsset?: InfrastructureAsset | null;
+}
+
+export const EmergencyRouting: React.FC<EmergencyRoutingProps> = ({
+  assets = [],
+  initialOriginAsset
+}) => {
+  const [originMode, setOriginMode] = useState<'preset' | 'registry'>('preset');
+  const [startPreset, setStartPreset] = useState<'puri_hosp' | 'paradip_hosp' | 'konark'>('puri_hosp');
+  const [selectedAssetId, setSelectedAssetId] = useState<string>('');
+  
   const [endPoint, setEndPoint] = useState<'aiims' | 'scb' | 'puri_shelter'>('aiims');
   const [avoidFlood, setAvoidFlood] = useState(true);
   const [vehicleType, setVehicleType] = useState('ambulance');
@@ -34,14 +46,36 @@ export const EmergencyRouting: React.FC = () => {
     puri_shelter: { name: 'Puri Model Cyclone Shelter (Stilt Hub)', lat: 19.8050, lng: 85.8200 }
   };
 
+  // If initialOriginAsset provided, configure registry mode
+  useEffect(() => {
+    if (initialOriginAsset) {
+      setOriginMode('registry');
+      setSelectedAssetId(initialOriginAsset.asset_id);
+    }
+  }, [initialOriginAsset]);
+
   const handleCalculateRoute = async () => {
     setLoading(true);
     try {
-      const s = startCoordsMap[startPoint];
+      let sLat = 19.8210;
+      let sLng = 85.8450;
+
+      if (originMode === 'registry' && selectedAssetId) {
+        const found = assets.find(a => a.asset_id === selectedAssetId);
+        if (found) {
+          sLat = found.latitude;
+          sLng = found.longitude;
+        }
+      } else {
+        const s = startCoordsMap[startPreset];
+        sLat = s.lat;
+        sLng = s.lng;
+      }
+
       const e = endCoordsMap[endPoint];
       const res = await api.calculateOptimalRoute({
-        start_lat: s.lat,
-        start_lng: s.lng,
+        start_lat: sLat,
+        start_lng: sLng,
         end_lat: e.lat,
         end_lng: e.lng,
         avoid_high_flood: avoidFlood,
@@ -54,6 +88,11 @@ export const EmergencyRouting: React.FC = () => {
       setLoading(false);
     }
   };
+
+  // Run on mount
+  useEffect(() => {
+    handleCalculateRoute();
+  }, [originMode, startPreset, selectedAssetId, endPoint, avoidFlood, vehicleType]);
 
   return (
     <div className="w-full flex-1 overflow-y-auto px-4 sm:px-8 py-8 space-y-8 bg-slate-50">
@@ -71,21 +110,53 @@ export const EmergencyRouting: React.FC = () => {
       {/* Origin / Destination & Settings Card - Clean White Design */}
       <div className="bg-white border border-slate-200 rounded-xl p-6 sm:p-8 shadow-xs space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
-          {/* Origin */}
+          {/* Origin Selection */}
           <div className="space-y-1.5">
-            <label className="font-semibold text-slate-700 flex items-center gap-1.5">
-              <MapPin className="w-4 h-4 text-slate-600" />
-              <span>Evacuation Origin</span>
-            </label>
-            <select
-              value={startPoint}
-              onChange={(e: any) => setStartPoint(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-900 outline-none font-medium"
-            >
-              <option value="puri_hosp">Puri District Headquarters Hospital</option>
-              <option value="paradip_hosp">Paradip Port Trust Hospital</option>
-              <option value="konark">Konark Sub-Divisional Hospital</option>
-            </select>
+            <div className="flex items-center justify-between">
+              <label className="font-semibold text-slate-700 flex items-center gap-1.5">
+                <MapPin className="w-4 h-4 text-slate-600" />
+                <span>Evacuation Origin</span>
+              </label>
+              <div className="flex gap-1 text-[10px]">
+                <button
+                  onClick={() => setOriginMode('preset')}
+                  className={`px-1.5 py-0.5 rounded ${originMode === 'preset' ? 'bg-slate-900 text-white font-bold' : 'text-slate-500 hover:text-slate-800'}`}
+                >
+                  Presets
+                </button>
+                <button
+                  onClick={() => setOriginMode('registry')}
+                  className={`px-1.5 py-0.5 rounded ${originMode === 'registry' ? 'bg-slate-900 text-white font-bold' : 'text-slate-500 hover:text-slate-800'}`}
+                >
+                  All ({assets.length || 87})
+                </button>
+              </div>
+            </div>
+
+            {originMode === 'preset' ? (
+              <select
+                value={startPreset}
+                onChange={(e: any) => setStartPreset(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-900 outline-none font-medium"
+              >
+                <option value="puri_hosp">Puri District Headquarters Hospital</option>
+                <option value="paradip_hosp">Paradip Port Trust Hospital</option>
+                <option value="konark">Konark Sub-Divisional Hospital</option>
+              </select>
+            ) : (
+              <select
+                value={selectedAssetId}
+                onChange={(e) => setSelectedAssetId(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-900 outline-none font-medium truncate"
+              >
+                <option value="">Select monitored asset...</option>
+                {(assets || []).map((a) => (
+                  <option key={a.asset_id} value={a.asset_id}>
+                    {a.name} ({a.district})
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           {/* Destination */}
@@ -155,7 +226,7 @@ export const EmergencyRouting: React.FC = () => {
             ) : (
               <Navigation className="w-4 h-4" />
             )}
-            <span>Compute Safest Evacuation Corridor</span>
+            <span>Recalculate Route</span>
           </button>
         </div>
       </div>
@@ -202,7 +273,7 @@ export const EmergencyRouting: React.FC = () => {
               <div>
                 <div className="text-xs font-semibold text-slate-800 mb-2">Sequential Transit Corridors:</div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                  {route.path_nodes.map((node, i) => (
+                  {(route.path_nodes || []).map((node, i) => (
                     <div key={i} className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs flex items-center gap-2">
                       <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-700 font-bold text-[10px] flex items-center justify-center shrink-0">
                         {i + 1}

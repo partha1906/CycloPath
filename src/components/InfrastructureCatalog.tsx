@@ -27,11 +27,13 @@ export const InfrastructureCatalog: React.FC<CatalogProps> = ({
   const [selectedDistrict, setSelectedDistrict] = useState<string>('all');
   const [selectedRisk, setSelectedRisk] = useState<string>('all');
 
+  const safeAssets = Array.isArray(assets) ? assets : [];
+
   // Distinct districts
-  const districts = Array.from(new Set(assets.map(a => a.district))).sort();
+  const districts = Array.from(new Set(safeAssets.map(a => a.district))).filter(Boolean).sort();
 
   // Filtered assets
-  const filtered = assets.filter(a => {
+  const filtered = safeAssets.filter(a => {
     if (selectedType !== 'all' && a.asset_type !== selectedType) return false;
     if (selectedDistrict !== 'all' && a.district !== selectedDistrict) return false;
     if (selectedRisk !== 'all' && a.risk_assessment?.risk_category.toLowerCase() !== selectedRisk.toLowerCase()) return false;
@@ -52,7 +54,7 @@ export const InfrastructureCatalog: React.FC<CatalogProps> = ({
             <span>Infrastructure Risk Registry</span>
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Real-time vulnerability index and explainable hazard metrics across {assets.length} coastal assets
+            Real-time vulnerability index and explainable hazard metrics across {safeAssets.length} coastal assets
           </p>
         </div>
 
@@ -98,7 +100,7 @@ export const InfrastructureCatalog: React.FC<CatalogProps> = ({
           className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-800 outline-none cursor-pointer font-medium"
         >
           <option value="all">{t.filter_district}</option>
-          {districts.map(d => (
+          {(districts || []).map(d => (
             <option key={d} value={d}>{d}</option>
           ))}
         </select>
@@ -132,7 +134,7 @@ export const InfrastructureCatalog: React.FC<CatalogProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filtered.map((asset) => {
+              {(filtered || []).map((asset) => {
                 const score = asset.risk_assessment?.overall_vulnerability_score || 0;
                 const cat = asset.risk_assessment?.risk_category || 'Moderate';
                 

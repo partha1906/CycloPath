@@ -25,7 +25,9 @@ export const AlertsPanel: React.FC<AlertsPanelProps> = ({
   const isCitizen = userRole === 'Public_Citizen';
   const [filterSeverity, setFilterSeverity] = useState<string>('all');
 
-  const filtered = alerts.filter(a => {
+  const safeAlerts = Array.isArray(alerts) ? alerts : [];
+
+  const filtered = safeAlerts.filter(a => {
     if (filterSeverity !== 'all' && a.severity.toLowerCase() !== filterSeverity.toLowerCase()) return false;
     return true;
   });
@@ -71,7 +73,7 @@ export const AlertsPanel: React.FC<AlertsPanelProps> = ({
 
       {/* Alerts Feed */}
       <div className="space-y-4">
-        {filtered.map((alert) => {
+        {(filtered || []).map((alert) => {
           const isCritical = alert.severity === 'CRITICAL';
           const isWarning = alert.severity === 'WARNING';
           

@@ -98,7 +98,7 @@ export const RiskMap: React.FC<RiskMapProps> = ({
 
     if (showCone) {
       // Cone of uncertainty polygon
-      if (cyclone.cone_coordinates && cyclone.cone_coordinates.length > 0) {
+      if (cyclone.cone_coordinates && Array.isArray(cyclone.cone_coordinates) && cyclone.cone_coordinates.length > 0) {
         const coneLatLngs = cyclone.cone_coordinates.map(pt => [pt[0], pt[1]] as [number, number]);
         L.polygon(coneLatLngs, {
           color: '#e11d48',
@@ -110,7 +110,7 @@ export const RiskMap: React.FC<RiskMapProps> = ({
       }
 
       // Trajectory polyline
-      if (cyclone.trajectory_points && cyclone.trajectory_points.length > 0) {
+      if (cyclone.trajectory_points && Array.isArray(cyclone.trajectory_points) && cyclone.trajectory_points.length > 0) {
         const trackLatLngs = cyclone.trajectory_points.map(p => [p.lat, p.lng] as [number, number]);
         L.polyline(trackLatLngs, {
           color: '#be123c',
@@ -242,7 +242,8 @@ export const RiskMap: React.FC<RiskMapProps> = ({
 
     markersGroup.clearLayers();
 
-    const filtered = assets.filter(asset => {
+    const safeAssets = Array.isArray(assets) ? assets : [];
+    const filtered = safeAssets.filter(asset => {
       if (asset.asset_type === 'hospital' && !showHospitals) return false;
       if (asset.asset_type === 'power_station' && !showPower) return false;
       if (asset.asset_type === 'bridge' && !showBridges) return false;

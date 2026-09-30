@@ -39,6 +39,8 @@ export const App: React.FC = () => {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [selectedAsset, setSelectedAsset] = useState<InfrastructureAsset | null>(null);
 
+  const [routingOriginAsset, setRoutingOriginAsset] = useState<InfrastructureAsset | null>(null);
+
   // Settings Modal State
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
@@ -46,17 +48,19 @@ export const App: React.FC = () => {
   const loadPlatformData = async () => {
     try {
       const [cyc, sum, asts, alrts] = await Promise.all([
-        api.getCyclone(1),
-        api.getRiskSummary(),
-        api.getInfrastructure(),
-        api.getAlerts()
+        api.getCyclone(1).catch(() => null),
+        api.getRiskSummary().catch(() => null),
+        api.getInfrastructure().catch(() => []),
+        api.getAlerts().catch(() => [])
       ]);
-      setCyclone(cyc);
-      setSummary(sum);
-      setAssets(asts);
-      setAlerts(alrts);
+      setCyclone(cyc || null);
+      setSummary(sum || null);
+      setAssets(Array.isArray(asts) ? asts : []);
+      setAlerts(Array.isArray(alrts) ? alrts : []);
     } catch (err) {
       console.error('Failed to load initial platform data:', err);
+      setAssets([]);
+      setAlerts([]);
     }
   };
 
@@ -65,7 +69,7 @@ export const App: React.FC = () => {
   }, []);
 
   const handleAlertAck = (id: number) => {
-    setAlerts(prev => prev.map(a => a.id === id ? { ...a, acknowledged: true } : a));
+    setAlerts(prev => (Array.isArray(prev) ? prev : []).map(a => a.id === id ? { ...a, acknowledged: true } : a));
   };
 
   // 10-Step Interactive Demo Story Runner
@@ -174,7 +178,10 @@ export const App: React.FC = () => {
           )}
 
           {currentTab === 'routing' && (
-            <EmergencyRouting />
+            <EmergencyRouting 
+              assets={assets}
+              initialOriginAsset={routingOriginAsset}
+            />
           )}
 
           {currentTab === 'inspector' && (
@@ -221,7 +228,10 @@ export const App: React.FC = () => {
         <AssetDetailModal
           asset={selectedAsset}
           onClose={() => setSelectedAsset(null)}
-          onPlanRouteForAsset={() => setCurrentTab('routing')}
+          onPlanRouteForAsset={(asset) => {
+            setRoutingOriginAsset(asset);
+            setCurrentTab('routing');
+          }}
         />
       )}
 

@@ -38,8 +38,9 @@ export const CommandCenterDashboard: React.FC<DashboardProps> = ({
 }) => {
   const t = translations[language];
 
-  // Top high-risk assets
-  const highRiskAssets = assets
+  // Top high-risk assets (guarded)
+  const safeAssets = Array.isArray(assets) ? assets : [];
+  const highRiskAssets = safeAssets
     .filter(a => a.risk_assessment?.risk_category === 'Critical' || a.risk_assessment?.risk_category === 'High')
     .sort((a, b) => (b.risk_assessment?.overall_vulnerability_score || 0) - (a.risk_assessment?.overall_vulnerability_score || 0))
     .slice(0, 6);
@@ -53,7 +54,7 @@ export const CommandCenterDashboard: React.FC<DashboardProps> = ({
             <div className="flex flex-wrap items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-rose-600"></span>
               <span className="text-xs font-bold text-rose-700 tracking-wider uppercase">
-                Active Cyclone Warning • {cyclone?.category || 'Extremely Severe Cyclonic Storm (ESCS)'}
+                Active Cyclone Warning · {cyclone?.category || 'Extremely Severe Cyclonic Storm (ESCS)'}
               </span>
               <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-rose-50 border border-rose-200 text-rose-700">
                 Official IMD Red Alert
@@ -73,7 +74,7 @@ export const CommandCenterDashboard: React.FC<DashboardProps> = ({
                 <strong className="text-slate-900">{cyclone?.estimated_landfall_location || 'Between Puri and Paradip, Odisha'}</strong>
                 <span className="text-slate-500"> ({cyclone?.estimated_landfall_time || 'T-6.5 Hours'})</span>
               </p>
-              <span className="text-slate-300">•</span>
+              <span className="text-slate-300">·</span>
               <p className="text-slate-500 text-xs">
                 Data calibrated with <span className="font-medium text-slate-700">IMD Doppler Radar & ISRO Bhuvan DEM</span>
               </p>
@@ -258,7 +259,7 @@ export const CommandCenterDashboard: React.FC<DashboardProps> = ({
               onClick={() => onNavigateTab('infrastructure')}
               className="text-xs font-semibold text-sky-700 hover:text-sky-900 flex items-center gap-1"
             >
-              <span>View All ({assets.length})</span>
+              <span>View All ({safeAssets.length})</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -275,7 +276,7 @@ export const CommandCenterDashboard: React.FC<DashboardProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {highRiskAssets.map((asset) => {
+                {(highRiskAssets || []).map((asset) => {
                   const score = asset.risk_assessment?.overall_vulnerability_score || 0;
                   const cat = asset.risk_assessment?.risk_category || 'Moderate';
                   
@@ -301,7 +302,7 @@ export const CommandCenterDashboard: React.FC<DashboardProps> = ({
                         <span className={`inline-block px-2.5 py-1 rounded-md font-bold text-xs tabular-nums ${
                           score >= 80 ? 'badge-critical' : score >= 60 ? 'badge-high' : 'badge-moderate'
                         }`}>
-                          {score}/100 • {cat}
+                          {score}/100 · {cat}
                         </span>
                       </td>
                       <td className="py-3.5 px-3.5 text-right">
@@ -399,7 +400,7 @@ export const CommandCenterDashboard: React.FC<DashboardProps> = ({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {summary.district_breakdown.slice(0, 4).map((d) => (
+            {(summary.district_breakdown || []).slice(0, 4).map((d) => (
               <div key={d.district} className="p-4 rounded-lg bg-slate-50 border border-slate-200 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-slate-900 text-sm">{d.district}</span>

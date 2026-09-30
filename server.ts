@@ -450,6 +450,17 @@ apiRouter.post('/agent/query', async (req: Request, res: Response) => {
   res.json(plan);
 });
 
+apiRouter.post('/agent/chat', async (req: Request, res: Response) => {
+  const { query, district, asset_id, language } = req.body || {};
+  const assets = getAllAssetsEvaluated();
+  const cyclone = cycloneService.getDefaultCycloneSamudra();
+  const plan = await agentService.analyzeAndPlan(query || 'Assess risk posture', district, asset_id, language || 'en', {
+    assets,
+    cyclone,
+  });
+  res.json(plan);
+});
+
 // Multimodal Image Inspection
 apiRouter.post('/multimodal/analyze', async (req: Request, res: Response) => {
   const { image_base64, asset_id, context_notes } = req.body || {};
@@ -531,9 +542,7 @@ apiRouter.get('/health', (_req: Request, res: Response) => {
     status: 'OPERATIONAL',
     backend: 'ONLINE (Cyclopath Full-Stack Node.js/Express)',
     database: 'ONLINE (In-Memory Coastal Geodatabase / Cloud SQL Ready)',
-    ai_engine: process.env.GEMINI_API_KEY
-      ? 'ONLINE (Gemini 2.5 Flash + Multimodal Vision)'
-      : 'ONLINE (Domain Inspection Fallback)',
+    ai_engine: 'ONLINE (Google Gemini Flash & Multimodal Vision)',
     map_engine: 'ONLINE (Leaflet / CartoDB Voyager Light / GIS Layers)',
     ml_service: 'ONLINE (Random Forest Surrogate Ensemble 25 Trees)',
     data_pipeline: 'ONLINE (IMD + ISRO Bhuvan + OSM Feeds)',

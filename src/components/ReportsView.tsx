@@ -4,8 +4,9 @@ import {
   Printer, 
   Building2, 
   MapPin, 
-  ShieldAlert,
-  Clock
+  ShieldAlert, 
+  Clock,
+  Download
 } from 'lucide-react';
 import { api } from '../services/api';
 
@@ -29,6 +30,41 @@ export const ReportsView: React.FC = () => {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDownload = () => {
+    if (!report) return;
+    const content = `=====================================================
+${report.report_title}
+Generated: ${report.generated_at}
+Scenario: ${report.scenario}
+=====================================================
+
+1. EXECUTIVE SUMMARY:
+${report.executive_summary}
+
+2. METRICS:
+- Total Monitored: ${report.metrics?.total_assets_monitored}
+- Critical Risk: ${report.metrics?.critical_risk_count}
+- High Risk: ${report.metrics?.high_risk_count}
+- Population Exposed: ${report.metrics?.estimated_population_exposure}
+
+3. PRIORITY VULNERABLE ASSETS:
+${(report.critical_assets || []).map((a: any, i: number) => `${i + 1}. ${a.name} (${a.asset_id}) - ${a.district} [${a.risk_assessment?.overall_vulnerability_score}/100]`).join('\n')}
+
+4. EVACUATION & SHELTERS:
+Active shelters: ${report.evacuation_shelters?.active_shelters_count || 20}
+Total capacity: ${report.evacuation_shelters?.total_shelter_capacity || 48000} persons
+
+Disclaimer: ${report.disclaimer}
+`;
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Cyclopath_Assessment_Report_${Date.now()}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   if (loading) {
@@ -55,13 +91,23 @@ export const ReportsView: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={handlePrint}
-          className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs flex items-center gap-2 shadow-xs transition self-start sm:self-auto cursor-pointer"
-        >
-          <Printer className="w-4 h-4" />
-          <span>Print / Export Document</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          <button
+            onClick={handleDownload}
+            className="px-4 py-2.5 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-slate-800 font-semibold text-xs flex items-center gap-2 shadow-xs transition cursor-pointer"
+          >
+            <Download className="w-4 h-4 text-slate-600" />
+            <span>Download Report (.txt)</span>
+          </button>
+
+          <button
+            onClick={handlePrint}
+            className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs flex items-center gap-2 shadow-xs transition cursor-pointer"
+          >
+            <Printer className="w-4 h-4" />
+            <span>Print / Export Document</span>
+          </button>
+        </div>
       </div>
 
       {/* Printable Report Document Card - Clean White Style */}

@@ -227,7 +227,7 @@ export const ScenarioSimulator: React.FC<SimulatorProps> = ({ onSelectAsset }) =
                 <AlertTriangle className="w-4 h-4 text-rose-600" />
               </div>
               <div className="text-3xl font-extrabold text-rose-600 tabular-nums">
-                {simResult.newly_critical_assets.length}
+                {(simResult.newly_critical_assets || []).length}
               </div>
               <p className="text-[11px] text-slate-500 mt-2">
                 Facilities exceeding critical vulnerability thresholds.
@@ -236,7 +236,7 @@ export const ScenarioSimulator: React.FC<SimulatorProps> = ({ onSelectAsset }) =
           </div>
 
           {/* Newly Critical Facilities Table */}
-          {simResult.newly_critical_assets.length > 0 && (
+          {simResult.newly_critical_assets && simResult.newly_critical_assets.length > 0 && (
             <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-xs space-y-4">
               <div>
                 <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
@@ -261,7 +261,7 @@ export const ScenarioSimulator: React.FC<SimulatorProps> = ({ onSelectAsset }) =
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {simResult.newly_critical_assets.map((item: any, i: number) => (
+                    {(simResult.newly_critical_assets || []).map((item: any, i: number) => (
                       <tr key={i} className="hover:bg-slate-50 transition">
                         <td className="py-3.5 px-4 font-semibold text-slate-900">{item.name}</td>
                         <td className="py-3.5 px-4 capitalize text-slate-600">{item.type.replace('_', ' ')}</td>

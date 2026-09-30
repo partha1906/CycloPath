@@ -126,7 +126,7 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
             <div className="space-y-2.5">
               <h3 className="font-bold text-slate-900 text-sm">Priority Mitigation Directives:</h3>
               <div className="space-y-2 text-xs text-slate-700">
-                {ra.recommended_actions.map((act, i) => (
+                {(ra.recommended_actions || []).map((act, i) => (
                   <div key={i} className="p-3 rounded-lg bg-slate-50 border border-slate-200 flex items-start gap-2.5">
                     <span className="font-bold text-slate-900 shrink-0">{i + 1}.</span>
                     <span>{act}</span>

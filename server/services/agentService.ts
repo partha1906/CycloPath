@@ -1,6 +1,8 @@
 import { cycloneService, CycloneData } from './cycloneService';
 import { routingService } from './routingService';
 import { geminiService } from './geminiService';
+import { SEED_ASSETS } from '../data/seedData';
+import { riskEngine } from './riskEngine';
 
 export interface AgentToolCallTrace {
   tool_name: string;
@@ -130,8 +132,33 @@ export class CyclopathResponseAgent {
     language = 'en',
     context?: { assets?: any[]; cyclone?: CycloneData }
   ): Promise<AgentResponsePlan> {
-    const ctx = context || {};
-    const cyclone = ctx.cyclone || cycloneService.getDefaultCycloneSamudra();
+    const cyclone = context?.cyclone || cycloneService.getDefaultCycloneSamudra();
+    const assets = (context?.assets && context.assets.length > 0)
+      ? context.assets
+      : SEED_ASSETS.map((raw: any) => {
+          const a = { ...raw };
+          const [distKm, cycloneExp] = cycloneService.calculateCycloneExposure(
+            a.latitude,
+            a.longitude,
+            cyclone.current_lat,
+            cyclone.current_lng,
+            cyclone.max_wind_speed_kmh
+          );
+          const ra = riskEngine.evaluateAsset(
+            a,
+            cycloneExp,
+            cyclone.rainfall_24h_mm,
+            cyclone.storm_surge_potential_m
+          );
+          a.distance_to_cyclone_km = Math.round(distKm * 10) / 10;
+          a.risk_assessment = ra;
+          return a;
+        });
+
+    const ctx = {
+      cyclone,
+      assets,
+    };
     const targetDistrict = district || 'Puri';
 
     const toolTraces: AgentToolCallTrace[] = [];
