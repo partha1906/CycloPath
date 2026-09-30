@@ -1,0 +1,8 @@
+{
+  "name": "Cyclopath AI",
+  "description": "Cyclopath AI - AI-powered disaster intelligence & infrastructure vulnerability platform for Indian coastal communities. Predicting impact, protecting infrastructure, saving lives.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
